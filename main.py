@@ -113,6 +113,7 @@ def get__content(message):
         iri = unquote(url_message[start_iri:])
         print(get_current_time() + " id: " + str(id) + " URL: " + iri)
         try:
+            video = None
             response_data = get_post_html(iri)
             soup = BeautifulSoup(response_data, 'html.parser')
 
@@ -159,7 +160,6 @@ def get__content(message):
 
             if post_type == 'video':
                 video_hd_link = get_video_hd_link(iri)
-                video = None
                 try:
                     bot.send_media_group(message.chat.id, [InputMediaVideo(video_hd_link, None, title)],
                                          None, message.id)
