@@ -114,6 +114,7 @@ def get__content(message):
         print(get_current_time() + " id: " + str(id) + " URL: " + iri)
         try:
             video = None
+            post_type = ''
             response_data = get_post_html(iri)
             soup = BeautifulSoup(response_data, 'html.parser')
 
@@ -189,7 +190,7 @@ def get__content(message):
                     'shreddit-player').find('source')['src']
                 try:
                     bot.send_animation(
-                        message.chat.id, gif_link, None, title, message.id)
+                        message.chat.id, gif_link,None, title, message.id,)
                 except Exception as e:
                     bot.send_animation(
                         message.chat.id, gif_link, None, title, message.id)
