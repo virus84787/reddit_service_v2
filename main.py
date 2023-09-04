@@ -90,7 +90,7 @@ def get_imgur_video_link(imgur_page_link):
 
 @bot.message_handler(content_types=['text'])
 def get__content(message):
-    if "https://www.reddit.com/" in message.text:
+    if "https://www.reddit.com/" in message.text or "https://reddit.com/" in message.text:
         chat_identity = message.chat.title if message.chat.id < 0 else str(
             message.chat.id)
 
