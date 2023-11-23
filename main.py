@@ -143,7 +143,7 @@ def get__content(message):
 
             if post_type == 'crosspost':
                 original_link = 'https://www.reddit.com' + \
-                    shreddit_post.find('h2').find('a')['href']
+                    shreddit_post['content-href']
                 original_post_html = get_post_html(original_link)
                 original_post_soup = BeautifulSoup(
                     original_post_html, 'html.parser')
