@@ -102,6 +102,26 @@ def get_chat_identity(message):
     
     return chat_identity
 
+def get_images_capations_dic(images):
+    images_capations  = '\n\n'
+    images_capations_dic = {}
+    img_count = 0
+    part_count = 1
+    for image in images:
+        img_count +=1
+        try:
+            if image.find("gallery-caption")["image-caption"]:
+                images_capations = images_capations + str(img_count) + '. ' + image.find("gallery-caption")["image-caption"] + '\n'
+        except Exception as e:
+            print("there is no image-caption")
+        if img_count % 10 == 0:
+            images_capations_dic[part_count] = images_capations
+            images_capations = '\n\n'
+            img_count = 0
+            part_count += 1
+    images_capations_dic[part_count] = images_capations
+    return images_capations_dic
+
 
 @bot.message_handler(content_types=["text"])
 def get__content(message):
@@ -258,14 +278,15 @@ def get__content(message):
                 img_arr = []
                 img_count = 0
                 part_string = ""
-                part_count = 0
+                part_count = 1
+                images_capations_dic = get_images_capations_dic(images)
                 for image in images:
                     image_link = image.find("img")["src"]
                     if len(img_arr) == 0:
                         if len(images) > 10:
-                            part_count += 1
                             part_string = " (Part " + str(part_count) + ")"
-                        img_arr.append(InputMediaPhoto(image_link, title + part_string))
+                        img_arr.append(InputMediaPhoto(image_link, title + part_string + images_capations_dic[part_count]))
+                        part_count += 1
                     else:
                         img_arr.append(InputMediaPhoto(image_link))
                     img_count += 1
