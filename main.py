@@ -11,6 +11,9 @@ from datetime import datetime
 from urllib.parse import quote, unquote, urlsplit, urlunsplit
 from bs4 import BeautifulSoup
 
+import ssl
+context = ssl._create_unverified_context()
+
 bot = telebot.TeleBot(config.TOKEN)
 dev_chat_id = config.DEV_CHAT_ID
 me_chat_id = config.ME_CHAT_ID
@@ -43,7 +46,7 @@ def get_post_html(iri):
         url,
         data=None,
         headers={
-            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/35.0.1916.47 Safari/537.36"
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         },
     )
     retry_count = 1
@@ -51,7 +54,7 @@ def get_post_html(iri):
     while retry_count <= 10:
         try:
             time.sleep(0.1)
-            url_response = urllib.request.urlopen(req)
+            url_response = urllib.request.urlopen(req, context=context)
             break
         except Exception as e:
             bot.send_message(dev_chat_id, "Retry - " + str(retry_count))
@@ -74,7 +77,7 @@ def get_video_hd_link(iri):
             "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/35.0.1916.47 Safari/537.36"
         },
     )
-    url_response = urllib.request.urlopen(req)
+    url_response = urllib.request.urlopen(req, context=context)
     response_data = url_response.read().decode("utf-8")
     soup = BeautifulSoup(response_data, "html.parser")
     video_links = soup.find_all("a", class_="btn btn-success btn-lg downloadButton")
