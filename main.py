@@ -18,6 +18,7 @@ bot = telebot.TeleBot(config.TOKEN)
 dev_chat_id = config.DEV_CHAT_ID
 me_chat_id = config.ME_CHAT_ID
 download_tool_site = config.DOWNLOAD_TOOL_SITE
+download_tool_site_v2 = config.DOWNLOAD_TOOL_SITE_V2
 
 
 def iri_to_uri(iri):
@@ -84,6 +85,21 @@ def get_video_hd_link(iri):
     video_hd_link = video_links[0]["href"]
     return video_hd_link
 
+def get_video_hd_link_v2(iri):
+    url = iri_to_uri(download_tool_site_v2 + iri)
+    req = urllib.request.Request(
+        url,
+        data=None,
+        headers={
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/35.0.1916.47 Safari/537.36"
+        },
+    )
+    url_response = urllib.request.urlopen(req, context=context)
+    response_data = url_response.read().decode("utf-8")
+    soup = BeautifulSoup(response_data, "html.parser")
+    video_links = soup.find_all("a", class_="downloadbutton")
+    video_hd_link = video_links[0]["href"]
+    return video_hd_link
 
 def get_imgur_video_link(imgur_page_link):
     imgur_page_html = get_post_html(imgur_page_link)
@@ -222,7 +238,7 @@ def get__content(message):
                 print(get_current_time() + " id: " + str(id) + " Post type: gif/imgur")
 
             if post_type == "video":
-                video_hd_link = get_video_hd_link(iri)
+                video_hd_link = get_video_hd_link_v2(iri) if get_video_hd_link_v2(iri) else get_video_hd_link(iri)
                 try:
                     bot.send_media_group(
                         message.chat.id,
@@ -231,7 +247,9 @@ def get__content(message):
                         message.id,
                     )
                 except Exception as e:
-                    urllib.request.urlretrieve(video_hd_link, str(id) + ".mp4")
+                    opener = urllib.request.URLopener()
+                    opener.addheader('User-Agent', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/35.0.1916.47 Safari/537.36')
+                    opener.retrieve(video_hd_link, str(id) + ".mp4")
                     video = open(str(id) + ".mp4", "rb")
                     bot.send_media_group(
                         message.chat.id,
@@ -284,7 +302,7 @@ def get__content(message):
                 part_count = 1
                 images_capations_dic = get_images_capations_dic(images)
                 for image in images:
-                    image_link = image.find("img")["src"]
+                    image_link = image.find("a")["href"]
                     if len(img_arr) == 0:
                         if len(images) > 10:
                             part_string = " (Part " + str(part_count) + ")"
