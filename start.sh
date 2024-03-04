@@ -1,2 +1,2 @@
-sudo docker build -t tiktok-service . ;
-sudo docker run --restart=always -d tiktok-service ;
+sudo docker build -t reddit-service . ;
+sudo docker run --restart=always -d reddit-service ;
