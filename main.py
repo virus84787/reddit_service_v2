@@ -11,15 +11,11 @@ from datetime import datetime
 from urllib.parse import quote, unquote, urlsplit, urlunsplit
 from bs4 import BeautifulSoup
 
-import ssl
-context = ssl._create_unverified_context()
-
 bot = telebot.TeleBot(config.TOKEN)
 dev_chat_id = config.DEV_CHAT_ID
 me_chat_id = config.ME_CHAT_ID
 download_tool_site = config.DOWNLOAD_TOOL_SITE
 download_tool_site_v2 = config.DOWNLOAD_TOOL_SITE_V2
-
 
 def iri_to_uri(iri):
     parts = urlsplit(iri)
@@ -34,12 +30,10 @@ def iri_to_uri(iri):
     )
     return uri
 
-
 def remove_html_tags(text):
     """Remove html tags from a string"""
     clean = re.compile("<.*?>")
     return re.sub(clean, "", text)
-
 
 def get_post_html(iri):
     url = iri_to_uri(iri)
@@ -52,10 +46,10 @@ def get_post_html(iri):
     )
     retry_count = 1
     url_response = ...
-    while retry_count <= 10:
+    while retry_count <= 5:
         try:
             time.sleep(0.1)
-            url_response = urllib.request.urlopen(req, context=context)
+            url_response = urllib.request.urlopen(req)
             break
         except Exception as e:
             bot.send_message(dev_chat_id, "Retry - " + str(retry_count))
@@ -63,11 +57,9 @@ def get_post_html(iri):
     response_data = url_response.read().decode("utf-8")
     return response_data
 
-
 def get_current_time():
     now = datetime.now()
     return now.strftime("%d/%m/%Y %H:%M:%S")
-
 
 def get_video_hd_link(iri):
     url = iri_to_uri(download_tool_site + iri)
@@ -78,7 +70,7 @@ def get_video_hd_link(iri):
             "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/35.0.1916.47 Safari/537.36"
         },
     )
-    url_response = urllib.request.urlopen(req, context=context)
+    url_response = urllib.request.urlopen(req)
     response_data = url_response.read().decode("utf-8")
     soup = BeautifulSoup(response_data, "html.parser")
     video_links = soup.find_all("a", class_="btn btn-success btn-lg downloadButton")
@@ -94,12 +86,29 @@ def get_video_hd_link_v2(iri):
             "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/35.0.1916.47 Safari/537.36"
         },
     )
-    url_response = urllib.request.urlopen(req, context=context)
+    url_response = urllib.request.urlopen(req)
     response_data = url_response.read().decode("utf-8")
     soup = BeautifulSoup(response_data, "html.parser")
     video_links = soup.find_all("a", class_="downloadbutton")
     video_hd_link = video_links[0]["href"]
-    return video_hd_link
+    table = soup.find("table").find_all("td")[1].text
+    if soup.find("table").find_all("td")[1].text == 'i.imgur.com':
+        result = 'https://rapidsave.com' + video_hd_link
+    else:
+        try: 
+            video_hd_link_array = video_hd_link.split('&')
+
+            reddit_link_array = video_hd_link_array[0].split('/')
+            index_of_steing_for_decoding = reddit_link_array.index('comments') + 2
+            reddit_link_array[index_of_steing_for_decoding] = quote(reddit_link_array[index_of_steing_for_decoding])
+            video_hd_link_array[0] = '/'.join(reddit_link_array)
+            video_hd_link_decoded = '&'.join(video_hd_link_array)
+            result = video_hd_link_decoded
+        except Exception as e:
+            print('Video link decoding failed')
+            result = video_hd_link
+            
+    return result
 
 def get_imgur_video_link(imgur_page_link):
     imgur_page_html = get_post_html(imgur_page_link)
@@ -108,7 +117,6 @@ def get_imgur_video_link(imgur_page_link):
         "content"
     ]
     return imgur_video_link
-
 
 def get_chat_identity(message):
     chat_identity = "Chat ID: " + str(message.chat.id) + "\n"
@@ -140,7 +148,6 @@ def get_images_capations_dic(images):
             part_count += 1
     images_capations_dic[part_count] = images_capations
     return images_capations_dic
-
 
 @bot.message_handler(content_types=["text"])
 def get__content(message):
@@ -186,7 +193,7 @@ def get__content(message):
             post_title = shreddit_post["post-title"]
             subreddit_name = shreddit_post["subreddit-prefixed-name"]
             post_type = shreddit_post["post-type"]
-            nsfw_flag = shreddit_post("icon-nsfw")
+            nsfw_flag = True if shreddit_post("icon-nsfw") else False
             content_href = shreddit_post["content-href"]
 
             nsfw = "[NSFW] " if nsfw_flag else ""
@@ -234,28 +241,59 @@ def get__content(message):
                 )
 
             if post_type == "gif" and "https://i.imgur.com/" in content_href:
-                post_type = "video"
                 print(get_current_time() + " id: " + str(id) + " Post type: gif/imgur")
+                post_type = "link"
 
             if post_type == "video":
                 video_hd_link = get_video_hd_link_v2(iri) if get_video_hd_link_v2(iri) else get_video_hd_link(iri)
                 try:
-                    bot.send_media_group(
+                    bot.send_video(
                         message.chat.id,
-                        [InputMediaVideo(video_hd_link, None, title)],
+                        video_hd_link,
+                        None,
+                        None,
+                        None,
+                        None,
+                        title,
+                        None,
+                        None,
+                        None,
+                        None,
                         None,
                         message.id,
+                        None,
+                        None,
+                        None,
+                        None,
+                        None,
+                        nsfw_flag
                     )
+                    print(get_current_time() + " id: " + str(id) + " Success: " + post_type)
                 except Exception as e:
                     opener = urllib.request.URLopener()
                     opener.addheader('User-Agent', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/35.0.1916.47 Safari/537.36')
                     opener.retrieve(video_hd_link, str(id) + ".mp4")
                     video = open(str(id) + ".mp4", "rb")
-                    bot.send_media_group(
+                    bot.send_video(
                         message.chat.id,
-                        [InputMediaVideo(video, None, title)],
+                        video,
+                        None,
+                        None,
+                        None,
+                        None,
+                        title,
+                        None,
+                        None,
+                        None,
+                        None,
                         None,
                         message.id,
+                        None,
+                        None,
+                        None,
+                        None,
+                        None,
+                        nsfw_flag
                     )
                 if video:
                     video.close()
@@ -265,19 +303,35 @@ def get__content(message):
             elif post_type == "image":
                 image_link = content_href
                 try:
-                    bot.send_media_group(
-                        message.chat.id,
-                        [InputMediaPhoto(image_link, title)],
-                        None,
-                        message.id,
-                    )
+                    bot.send_photo(message.chat.id,
+                                   image_link,
+                                   title,
+                                   None,
+                                   None,
+                                   None,
+                                   None,
+                                   message.id,
+                                   None,
+                                   None,
+                                   None,
+                                   None,
+                                   nsfw_flag
+                                   )
                 except Exception as e:
-                    bot.send_media_group(
-                        message.chat.id,
-                        [InputMediaPhoto(image_link, title)],
-                        None,
-                        message.id,
-                    )
+                    bot.send_photo(message.chat.id,
+                                   image_link,
+                                   title,
+                                   None,
+                                   None,
+                                   None,
+                                   None,
+                                   message.id,
+                                   None,
+                                   None,
+                                   None,
+                                   None,
+                                   nsfw_flag
+                                   )
                 print(get_current_time() + " id: " + str(id) + " Success: " + post_type)
             elif post_type == "gif":
                 gif_link = shreddit_post.find("shreddit-player").find("source")["src"]
@@ -286,8 +340,20 @@ def get__content(message):
                         message.chat.id,
                         gif_link,
                         None,
+                        None,
+                        None,
+                        None,
                         title,
+                        None,
+                        None,
+                        None,
+                        None,
                         message.id,
+                        None,
+                        None,
+                        None,
+                        None,
+                        nsfw_flag
                     )
                 except Exception as e:
                     bot.send_animation(
@@ -302,31 +368,35 @@ def get__content(message):
                 part_count = 1
                 images_capations_dic = get_images_capations_dic(images)
                 for image in images:
-                    image_link = image.find("a")["href"]
+                    imgs = image.find_all("img")
+                    try:
+                        image_link = imgs[-1]["src"]
+                    except Exception as e:
+                        image_link = imgs[-1]["data-lazy-src"]
                     if len(img_arr) == 0:
                         if len(images) > 10:
                             part_string = " (Part " + str(part_count) + ")"
-                        img_arr.append(InputMediaPhoto(image_link, title + part_string + images_capations_dic[part_count]))
+                        img_arr.append(InputMediaPhoto(image_link, title + part_string + images_capations_dic[part_count], None, None, nsfw_flag))
                         part_count += 1
                     else:
-                        img_arr.append(InputMediaPhoto(image_link))
+                        img_arr.append(InputMediaPhoto(image_link, None, None, None, nsfw_flag))
                     img_count += 1
                     if img_count == 10:
                         try:
                             bot.send_media_group(
-                                message.chat.id, img_arr, None, message.id
+                                message.chat.id, img_arr, None, None, message.id
                             )
                         except Exception as e:
                             bot.send_media_group(
-                                message.chat.id, img_arr, None, message.id
+                                message.chat.id, img_arr, None, None, message.id
                             )
                         img_arr = []
                         img_count = 0
                 if img_arr:
                     try:
-                        bot.send_media_group(message.chat.id, img_arr, None, message.id)
+                        bot.send_media_group(message.chat.id, img_arr, None, None, message.id)
                     except Exception as e:
-                        bot.send_media_group(message.chat.id, img_arr, None, message.id)
+                        bot.send_media_group(message.chat.id, img_arr, None, None, message.id)
                     print(
                         get_current_time()
                         + " id: "
@@ -346,6 +416,7 @@ def get__content(message):
                             message.chat.id,
                             [InputMediaVideo(imgur_video_link, None, title)],
                             None,
+                            None,
                             message.id,
                         )
                         print(
@@ -355,6 +426,7 @@ def get__content(message):
                         bot.send_media_group(
                             message.chat.id,
                             [InputMediaVideo(imgur_video_link, None, title)],
+                            None,
                             None,
                             message.id,
                         )
@@ -448,8 +520,11 @@ def get__content(message):
                     + str(id)
                     + ' "Supported content for extract not found"'
                 )
-
+        
         except Exception as e:
+            if e.args[0] == 'A request to the Telegram API was unsuccessful. Error code: 413. Description: Request Entity Too Large':
+                bot.reply_to(message, "Content Entity Too Large!")
+            print(e.args[0])
             url = iri_to_uri(iri)
             bot.send_message(
                 dev_chat_id,
@@ -462,7 +537,7 @@ def get__content(message):
                 + "\nError: "
                 + str(e),
             )
-            file = open("logs_errors.txt", "a")
+            file = open("logs_errors.txt", "a", newline='', encoding="utf-8")
             file.write(
                 get_current_time()
                 + " id: "
@@ -488,6 +563,5 @@ def get__content(message):
             if video:
                 video.close()
                 os.remove(str(id) + ".mp4")
-
 
 bot.polling(none_stop=True)
