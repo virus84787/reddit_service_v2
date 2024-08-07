@@ -157,6 +157,9 @@ def get__content(message):
     ):
         chat_identity = get_chat_identity(message)
 
+        processing_message = bot.reply_to(message, "Please, wait...\nDownloading...")
+        print(processing_message.id)
+
         try:
             file = open("id.txt", "r")
         except Exception as e:
@@ -520,8 +523,13 @@ def get__content(message):
                     + str(id)
                     + ' "Supported content for extract not found"'
                 )
-        
+
+            bot.delete_message(message.chat.id, processing_message.id)
+
         except Exception as e:
+
+            bot.delete_message(message.chat.id, processing_message.id)
+            
             if e.args[0] == 'A request to the Telegram API was unsuccessful. Error code: 413. Description: Request Entity Too Large':
                 bot.reply_to(message, "Content Entity Too Large!")
             print(e.args[0])
