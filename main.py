@@ -196,7 +196,7 @@ def get__content(message):
             post_title = shreddit_post["post-title"]
             subreddit_name = shreddit_post["subreddit-prefixed-name"]
             post_type = shreddit_post["post-type"]
-            nsfw_flag = True if shreddit_post("icon-nsfw") else False
+            nsfw_flag = True if 'nsfw' in str(shreddit_post) else False
             content_href = shreddit_post["content-href"]
 
             nsfw = "[NSFW] " if nsfw_flag else ""
@@ -337,7 +337,8 @@ def get__content(message):
                                    )
                 print(get_current_time() + " id: " + str(id) + " Success: " + post_type)
             elif post_type == "gif":
-                gif_link = shreddit_post.find("shreddit-player").find("source")["src"]
+                source_block = shreddit_post.find("shreddit-player-2") if shreddit_post.find("shreddit-player-2") else shreddit_post.find("shreddit-player")
+                gif_link = source_block.find("source")["src"]
                 try:
                     bot.send_animation(
                         message.chat.id,
@@ -372,6 +373,8 @@ def get__content(message):
                 images_capations_dic = get_images_capations_dic(images)
                 for image in images:
                     imgs = image.find_all("img")
+                    if not imgs:
+                        continue
                     try:
                         image_link = imgs[-1]["src"]
                     except Exception as e:
