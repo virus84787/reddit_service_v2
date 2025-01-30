@@ -35,8 +35,24 @@ def remove_html_tags(text):
     clean = re.compile("<.*?>")
     return re.sub(clean, "", text)
 
+def is_short_reddit_url(url):
+    return url.startswith("https://www.reddit.com/r/") and "/s/" in url
+
+def resolve_short_url(short_url):
+    req = urllib.request.Request(
+        short_url,
+        headers={"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"}
+    )
+    with urllib.request.urlopen(req) as response:
+        return response.geturl()  # Get the final redirected URL
+
 def get_post_html(iri):
-    url = iri_to_uri(iri)
+    if is_short_reddit_url(iri):
+        resolved_uri = resolve_short_url(iri)
+        url = urllib.parse.unquote(resolved_uri)
+    else: 
+        url = iri_to_uri(iri)
+    
     req = urllib.request.Request(
         url,
         data=None,
@@ -242,6 +258,10 @@ def get__content(message):
                     + " Original post type: "
                     + post_type
                 )
+
+            if post_type == "link" and "https://www.redgifs.com" in content_href:
+                print(get_current_time() + " id: " + str(id) + " Post type: link/redgifs")
+                post_type = "video"
 
             if post_type == "gif" and "https://i.imgur.com/" in content_href:
                 print(get_current_time() + " id: " + str(id) + " Post type: gif/imgur")
