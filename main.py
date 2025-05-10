@@ -1,5 +1,6 @@
 import os
 import re
+import signal
 
 import telebot
 from telebot.types import InputMediaPhoto, InputMediaVideo
@@ -11,11 +12,24 @@ from datetime import datetime
 from urllib.parse import quote, unquote, urlsplit, urlunsplit
 from bs4 import BeautifulSoup
 
+# Log Docker Compose initialization
+print(
+    f"[DOCKER] {datetime.now().strftime('%d/%m/%Y %H:%M:%S')} - Initializing Reddit Service Bot")
+
 bot = telebot.TeleBot(config.TOKEN)
 dev_chat_id = config.DEV_CHAT_ID
 me_chat_id = config.ME_CHAT_ID
 download_tool_site = config.DOWNLOAD_TOOL_SITE
 download_tool_site_v2 = config.DOWNLOAD_TOOL_SITE_V2
+
+# Log Docker Compose configuration
+print(f"[DOCKER] {datetime.now().strftime('%d/%m/%Y %H:%M:%S')} - Bot configured with token: {config.TOKEN[:4]}...{config.TOKEN[-4:]}")
+
+
+def log_docker_compose(message):
+    """Log messages specifically for Docker Compose output"""
+    timestamp = get_current_time()
+    print(f"[DOCKER] {timestamp} - {message}")
 
 
 def iri_to_uri(iri):
@@ -74,6 +88,8 @@ def get_post_html(iri):
             url_response = urllib.request.urlopen(req)
             break
         except Exception as e:
+            log_docker_compose(
+                f"API retry {retry_count}/5 for URL: {url[:50]}...")
             bot.send_message(dev_chat_id, "Retry - " + str(retry_count))
             retry_count += 1
     response_data = url_response.read().decode("utf-8")
@@ -192,6 +208,9 @@ def get__content(message):
     ):
         chat_identity = get_chat_identity(message)
 
+        log_docker_compose(
+            f"Processing Reddit URL from chat ID: {message.chat.id}")
+
         processing_message = bot.reply_to(
             message, "Please, wait...\nDownloading...")
         print(processing_message.id)
@@ -249,6 +268,9 @@ def get__content(message):
             post_type = shreddit_post["post-type"]
             nsfw_flag = True if 'nsfw' in str(shreddit_post) else False
             content_href = shreddit_post["content-href"]
+
+            log_docker_compose(
+                f"Found post type: {post_type} from subreddit: {subreddit_name}")
 
             nsfw = "[NSFW] " if nsfw_flag else ""
             title = subreddit_name + "\n" + nsfw + post_title
@@ -600,10 +622,14 @@ def get__content(message):
                 )
 
             bot.delete_message(message.chat.id, processing_message.id)
+            log_docker_compose(
+                f"Successfully processed {post_type} content from Reddit")
 
         except Exception as e:
 
             bot.delete_message(message.chat.id, processing_message.id)
+
+            log_docker_compose(f"Error processing Reddit URL: {str(e)[:100]}")
 
             if e.args[0] == 'A request to the Telegram API was unsuccessful. Error code: 413. Description: Request Entity Too Large':
                 bot.reply_to(message, "Content Entity Too Large!")
@@ -648,4 +674,32 @@ def get__content(message):
                 os.remove(str(id) + ".mp4")
 
 
+# Add container health check function
+def check_container_health():
+    try:
+        # Check if bot token is valid
+        bot.get_me()
+        log_docker_compose("Container health check: OK - Bot is responsive")
+        return True
+    except Exception as e:
+        log_docker_compose(f"Container health check: FAIL - {str(e)}")
+        return False
+
+
+# Add signal handlers for graceful shutdown
+def signal_handler(sig, frame):
+    log_docker_compose("Received shutdown signal, stopping bot gracefully")
+    # Perform cleanup if needed
+    exit(0)
+
+
+# Register signal handlers
+signal.signal(signal.SIGINT, signal_handler)
+signal.signal(signal.SIGTERM, signal_handler)
+
+# Run initial health check
+check_container_health()
+
+log_docker_compose("Reddit Service Bot started successfully")
+log_docker_compose("Bot is now polling for messages")
 bot.polling(none_stop=True)

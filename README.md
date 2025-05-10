@@ -28,9 +28,27 @@ docker-compose up -d
 # View logs
 docker-compose logs -f
 
+# View logs with timestamps
+docker-compose logs -f --timestamps
+
+# View only the last 100 lines of logs
+docker-compose logs -f --tail=100
+
+# Filter logs for Docker-specific messages
+docker-compose logs -f | grep "\[DOCKER\]"
+
 # Stop the service
 docker-compose down
 
 # Restart the service
 docker-compose restart
 ```
+
+## Log Files
+
+The service maintains two log files that are mounted as volumes:
+
+- `logs_errors.txt`: Contains detailed error logs
+- `logs_fails.txt`: Contains logs for failed content extraction attempts
+
+Docker Compose logs are configured with a 10MB size limit and 3 rotated files.
