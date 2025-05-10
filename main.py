@@ -17,6 +17,7 @@ me_chat_id = config.ME_CHAT_ID
 download_tool_site = config.DOWNLOAD_TOOL_SITE
 download_tool_site_v2 = config.DOWNLOAD_TOOL_SITE_V2
 
+
 def iri_to_uri(iri):
     parts = urlsplit(iri)
     uri = urlunsplit(
@@ -30,29 +31,34 @@ def iri_to_uri(iri):
     )
     return uri
 
+
 def remove_html_tags(text):
     """Remove html tags from a string"""
     clean = re.compile("<.*?>")
     return re.sub(clean, "", text)
 
+
 def is_short_reddit_url(url):
     return url.startswith("https://www.reddit.com/r/") and "/s/" in url
+
 
 def resolve_short_url(short_url):
     req = urllib.request.Request(
         short_url,
-        headers={"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"}
+        headers={
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"}
     )
     with urllib.request.urlopen(req) as response:
         return response.geturl()  # Get the final redirected URL
+
 
 def get_post_html(iri):
     if is_short_reddit_url(iri):
         resolved_uri = resolve_short_url(iri)
         url = urllib.parse.unquote(resolved_uri)
-    else: 
+    else:
         url = iri_to_uri(iri)
-    
+
     req = urllib.request.Request(
         url,
         data=None,
@@ -73,9 +79,11 @@ def get_post_html(iri):
     response_data = url_response.read().decode("utf-8")
     return response_data
 
+
 def get_current_time():
     now = datetime.now()
     return now.strftime("%d/%m/%Y %H:%M:%S")
+
 
 def get_video_hd_link(iri):
     url = iri_to_uri(download_tool_site + iri)
@@ -89,9 +97,11 @@ def get_video_hd_link(iri):
     url_response = urllib.request.urlopen(req)
     response_data = url_response.read().decode("utf-8")
     soup = BeautifulSoup(response_data, "html.parser")
-    video_links = soup.find_all("a", class_="btn btn-success btn-lg downloadButton")
+    video_links = soup.find_all(
+        "a", class_="btn btn-success btn-lg downloadButton")
     video_hd_link = video_links[0]["href"]
     return video_hd_link
+
 
 def get_video_hd_link_v2(iri):
     url = iri_to_uri(download_tool_site_v2 + iri)
@@ -112,20 +122,23 @@ def get_video_hd_link_v2(iri):
     if soup.find("table").find_all("td")[1].text == 'i.imgur.com':
         result = 'https://rapidsave.com' + video_hd_link
     else:
-        try: 
+        try:
             video_hd_link_array = video_hd_link.split('&')
 
             reddit_link_array = video_hd_link_array[0].split('/')
-            index_of_steing_for_decoding = reddit_link_array.index('comments') + 2
-            reddit_link_array[index_of_steing_for_decoding] = quote(reddit_link_array[index_of_steing_for_decoding])
+            index_of_steing_for_decoding = reddit_link_array.index(
+                'comments') + 2
+            reddit_link_array[index_of_steing_for_decoding] = quote(
+                reddit_link_array[index_of_steing_for_decoding])
             video_hd_link_array[0] = '/'.join(reddit_link_array)
             video_hd_link_decoded = '&'.join(video_hd_link_array)
             result = video_hd_link_decoded
         except Exception as e:
             print('Video link decoding failed')
             result = video_hd_link
-            
+
     return result
+
 
 def get_imgur_video_link(imgur_page_link):
     imgur_page_html = get_post_html(imgur_page_link)
@@ -135,6 +148,7 @@ def get_imgur_video_link(imgur_page_link):
     ]
     return imgur_video_link
 
+
 def get_chat_identity(message):
     chat_identity = "Chat ID: " + str(message.chat.id) + "\n"
     if message.chat.title:
@@ -143,19 +157,22 @@ def get_chat_identity(message):
         chat_identity = chat_identity + "Username: " + message.from_user.username + "\n"
     if message.from_user.full_name:
         chat_identity = chat_identity + "Full name: " + message.from_user.full_name + "\n"
-    
+
     return chat_identity
 
+
 def get_images_capations_dic(images):
-    images_capations  = '\n\n'
+    images_capations = '\n\n'
     images_capations_dic = {}
     img_count = 0
     part_count = 1
     for image in images:
-        img_count +=1
+        img_count += 1
         try:
             if image.find("gallery-caption")["image-caption"]:
-                images_capations = images_capations + str(img_count) + '. ' + image.find("gallery-caption")["image-caption"] + '\n'
+                images_capations = images_capations + \
+                    str(img_count) + '. ' + \
+                    image.find("gallery-caption")["image-caption"] + '\n'
         except Exception as e:
             print("there is no image-caption")
         if img_count % 10 == 0:
@@ -166,6 +183,7 @@ def get_images_capations_dic(images):
     images_capations_dic[part_count] = images_capations
     return images_capations_dic
 
+
 @bot.message_handler(content_types=["text"])
 def get__content(message):
     if (
@@ -174,30 +192,46 @@ def get__content(message):
     ):
         chat_identity = get_chat_identity(message)
 
-        processing_message = bot.reply_to(message, "Please, wait...\nDownloading...")
+        processing_message = bot.reply_to(
+            message, "Please, wait...\nDownloading...")
         print(processing_message.id)
 
         try:
-            file = open("id.txt", "r")
+            # Check if id.txt exists and is a directory
+            if os.path.isdir("id.txt"):
+                # If it's a directory, use a different file path
+                id_file_path = "counter_id.txt"
+            else:
+                id_file_path = "id.txt"
+
+            # Try to open the file for reading
+            try:
+                with open(id_file_path, "r") as file:
+                    s = file.read()
+                    id = int(s) if s.strip() != "" else 1
+            except (FileNotFoundError, IOError):
+                # If file doesn't exist or can't be read, start with id = 1
+                id = 1
+
+            # Write the incremented id back to file
+            with open(id_file_path, "w") as file:
+                file.write(str(id + 1))
+
+            print(
+                "-------------------------"
+                + "\n"
+                + get_current_time()
+                + " id: "
+                + str(id)
+                + " Chat identity: \n"
+                + chat_identity
+            )
         except Exception as e:
-            file = open("id.txt", "w")
-            file.close()
-            file = open("id.txt", "r")
-        s = file.read()
-        id = int(s) if s != "" else 1
-        file.close()
-        file = open("id.txt", "w")
-        file.write(str(id + 1))
-        file.close()
-        print(
-            "-------------------------"
-            + "\n"
-            + get_current_time()
-            + " id: "
-            + str(id)
-            + " Chat identity: \n"
-            + chat_identity
-        )
+            # Fall back to a default id in case of any other errors
+            id = int(time.time())  # Use timestamp as fallback ID
+            print(f"Error handling ID file: {str(e)}")
+            bot.send_message(dev_chat_id, f"Error handling ID file: {str(e)}")
+
         url_message = message.text
         start_iri = url_message.find("https")
         iri = unquote(url_message[start_iri:])
@@ -219,7 +253,8 @@ def get__content(message):
             nsfw = "[NSFW] " if nsfw_flag else ""
             title = subreddit_name + "\n" + nsfw + post_title
 
-            print(get_current_time() + " id: " + str(id) + " Post type: " + post_type)
+            print(get_current_time() + " id: " +
+                  str(id) + " Post type: " + post_type)
 
             if str(message.chat.id) != me_chat_id:
                 try:
@@ -244,9 +279,11 @@ def get__content(message):
                     )
 
             if post_type == "crosspost":
-                original_link = "https://www.reddit.com" + shreddit_post["content-href"]
+                original_link = "https://www.reddit.com" + \
+                    shreddit_post["content-href"]
                 original_post_html = get_post_html(original_link)
-                original_post_soup = BeautifulSoup(original_post_html, "html.parser")
+                original_post_soup = BeautifulSoup(
+                    original_post_html, "html.parser")
                 original_post_type = original_post_soup.find("shreddit-post")[
                     "post-type"
                 ]
@@ -261,15 +298,18 @@ def get__content(message):
                 )
 
             if post_type == "link" and "https://www.redgifs.com" in content_href:
-                print(get_current_time() + " id: " + str(id) + " Post type: link/redgifs")
+                print(get_current_time() + " id: " +
+                      str(id) + " Post type: link/redgifs")
                 post_type = "video"
 
             if post_type == "gif" and "https://i.imgur.com/" in content_href:
-                print(get_current_time() + " id: " + str(id) + " Post type: gif/imgur")
+                print(get_current_time() + " id: " +
+                      str(id) + " Post type: gif/imgur")
                 post_type = "link"
 
             if post_type == "video":
-                video_hd_link = get_video_hd_link_v2(iri) if get_video_hd_link_v2(iri) else get_video_hd_link(iri)
+                video_hd_link = get_video_hd_link_v2(
+                    iri) if get_video_hd_link_v2(iri) else get_video_hd_link(iri)
                 try:
                     bot.send_video(
                         message.chat.id,
@@ -292,10 +332,12 @@ def get__content(message):
                         None,
                         nsfw_flag
                     )
-                    print(get_current_time() + " id: " + str(id) + " Success: " + post_type)
+                    print(get_current_time() + " id: " +
+                          str(id) + " Success: " + post_type)
                 except Exception as e:
                     opener = urllib.request.URLopener()
-                    opener.addheader('User-Agent', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/35.0.1916.47 Safari/537.36')
+                    opener.addheader(
+                        'User-Agent', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/35.0.1916.47 Safari/537.36')
                     opener.retrieve(video_hd_link, str(id) + ".mp4")
                     video = open(str(id) + ".mp4", "rb")
                     bot.send_video(
@@ -323,7 +365,8 @@ def get__content(message):
                     video.close()
                     os.remove(str(id) + ".mp4")
 
-                print(get_current_time() + " id: " + str(id) + " Success: " + post_type)
+                print(get_current_time() + " id: " +
+                      str(id) + " Success: " + post_type)
             elif post_type == "image":
                 image_link = content_href
                 try:
@@ -356,9 +399,11 @@ def get__content(message):
                                    None,
                                    nsfw_flag
                                    )
-                print(get_current_time() + " id: " + str(id) + " Success: " + post_type)
+                print(get_current_time() + " id: " +
+                      str(id) + " Success: " + post_type)
             elif post_type == "gif":
-                source_block = shreddit_post.find("shreddit-player-2") if shreddit_post.find("shreddit-player-2") else shreddit_post.find("shreddit-player")
+                source_block = shreddit_post.find("shreddit-player-2") if shreddit_post.find(
+                    "shreddit-player-2") else shreddit_post.find("shreddit-player")
                 gif_link = source_block.find("source")["src"]
                 try:
                     bot.send_animation(
@@ -384,7 +429,8 @@ def get__content(message):
                     bot.send_animation(
                         message.chat.id, gif_link, None, title, message.id
                     )
-                print(get_current_time() + " id: " + str(id) + " Success: " + post_type)
+                print(get_current_time() + " id: " +
+                      str(id) + " Success: " + post_type)
             elif post_type == "gallery":
                 images = shreddit_post.find_all("li")
                 img_arr = []
@@ -403,10 +449,12 @@ def get__content(message):
                     if len(img_arr) == 0:
                         if len(images) > 10:
                             part_string = " (Part " + str(part_count) + ")"
-                        img_arr.append(InputMediaPhoto(image_link, title + part_string + images_capations_dic[part_count], None, None, nsfw_flag))
+                        img_arr.append(InputMediaPhoto(
+                            image_link, title + part_string + images_capations_dic[part_count], None, None, nsfw_flag))
                         part_count += 1
                     else:
-                        img_arr.append(InputMediaPhoto(image_link, None, None, None, nsfw_flag))
+                        img_arr.append(InputMediaPhoto(
+                            image_link, None, None, None, nsfw_flag))
                     img_count += 1
                     if img_count == 10:
                         try:
@@ -421,9 +469,11 @@ def get__content(message):
                         img_count = 0
                 if img_arr:
                     try:
-                        bot.send_media_group(message.chat.id, img_arr, None, None, message.id)
+                        bot.send_media_group(
+                            message.chat.id, img_arr, None, None, message.id)
                     except Exception as e:
-                        bot.send_media_group(message.chat.id, img_arr, None, None, message.id)
+                        bot.send_media_group(
+                            message.chat.id, img_arr, None, None, message.id)
                     print(
                         get_current_time()
                         + " id: "
@@ -511,7 +561,8 @@ def get__content(message):
                         reply_to_message_id=message.id,
                         parse_mode="Markdown",
                     )
-                print(get_current_time() + " id: " + str(id) + " Success: " + post_type)
+                print(get_current_time() + " id: " +
+                      str(id) + " Success: " + post_type)
             else:
                 url = iri_to_uri(iri)
                 file = open("logs_fails.txt", "a")
@@ -553,7 +604,7 @@ def get__content(message):
         except Exception as e:
 
             bot.delete_message(message.chat.id, processing_message.id)
-            
+
             if e.args[0] == 'A request to the Telegram API was unsuccessful. Error code: 413. Description: Request Entity Too Large':
                 bot.reply_to(message, "Content Entity Too Large!")
             print(e.args[0])
@@ -595,5 +646,6 @@ def get__content(message):
             if video:
                 video.close()
                 os.remove(str(id) + ".mp4")
+
 
 bot.polling(none_stop=True)
