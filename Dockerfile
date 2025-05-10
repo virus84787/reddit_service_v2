@@ -1,9 +1,11 @@
 FROM python:3.9-buster
 
-ADD main.py .
-ADD config.py .
+WORKDIR /app
 
-RUN pip install pyTelegramBotAPI
-RUN pip install bs4 
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+
+COPY main.py .
+COPY config.py .
 
 CMD [ "python", "./main.py" ]

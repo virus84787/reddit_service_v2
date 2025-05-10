@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  reddit-service:
+    build: .
+    restart: unless-stopped
+    volumes:
+      - ./src:/app/src
+      - ./id.txt:/app/id.txt
+      - ./logs_errors.txt:/app/logs_errors.txt
+      - ./logs_fails.txt:/app/logs_fails.txt
+      - ./config.py:/app/config.py
+      - ./main.py:/app/main.py
+    environment:
+      - TZ=UTC 

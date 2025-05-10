@@ -99,7 +99,8 @@ def get_video_hd_link_v2(iri):
         url,
         data=None,
         headers={
-            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/35.0.1916.47 Safari/537.36"
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36",
+            "cookie": "cf_clearance=6KFy96ma4g1c8kSGk7ViZuZ9kfmeYyGVTzecDAP3JrM-1746877442-1.2.1.1-RAr4_.EYHHmIqzDOzQOFiz5iIVjgjP8Ygmw0XvwhwNE168NdY1eNKY_UlxoS1PyU6gSB2VoEggcCzKnDDbBGetMXRdKLsAz6CWU3414xwSOo3_a4BcOrEH50NL1dbw38.zrUAPiM24UgSi3GmnILUeg.2wJZy8QRghPQQYfF7qexHIH5Ywk6u4dMzlH0WHmb5PA6kOoPB6xmuux1nzcUr.X7GKrMsFgmES7XNHcltdb4KBI7Jgv2aU6m05_shUyiJA_0UUL6cdPvmo1NRzuqRK9WeWOlwYgwwLER_PFpCwN6VPDEWHpxsAgbjnG6Vu_vLA052w6d8XVZbvXN2ACVc_hqiqwpBE4FTFpaY7f3wy18ekjK0lLCm6_KvnEeKZd7;"
         },
     )
     url_response = urllib.request.urlopen(req)
