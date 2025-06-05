@@ -634,9 +634,11 @@ def get__content(message):
 
             log_docker_compose(f"Error processing Reddit URL: {str(e)[:100]}")
 
-            if e.args[0] == 'A request to the Telegram API was unsuccessful. Error code: 413. Description: Request Entity Too Large':
+            error_message = str(e)
+            if 'Request Entity Too Large' in error_message or (hasattr(e, 'args') and len(e.args) > 0 and 'Request Entity Too Large' in str(e.args[0])):
                 bot.reply_to(message, "Content Entity Too Large!")
-            print(e.args[0])
+
+            print(f"Error details: {error_message}")
             url = iri_to_uri(iri)
             bot.send_message(
                 dev_chat_id,
