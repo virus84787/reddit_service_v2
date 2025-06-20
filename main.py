@@ -126,8 +126,8 @@ def get_video_hd_link_v2(iri):
         url,
         data=None,
         headers={
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36",
-            "cookie": download_tool_site_v2_cookie
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36",
+            "cookie": "cf_clearance=F80ZW0HVBaGnMvqGGNFH21abyUDjhAvCMN21cGPQ.Uo-1750411853-1.2.1.1-RvhL9Z5UGeTu0OhkBhvshZZUF4mz1uE2dCR6VJIZVZOz2ocNFW7lsyjLKIszPlgIhkIQrQ3MmjGOT7BdyM7xHvU9g8l7xduELobqVx4qq9OuDQQZ_7UIYg0QaqPrpVYRwxpXShgFiFNIILFLPPcwzZFqrJ.tmZWF_alUtDmn3zSDamh0abcgv4v.7Ff9LguxyQZv0gvsyZ_8q8a2GyYj.zT3O0AuOJRTgTHobBm6lhgfv6ZOLFD..9ThmBjyEQunDr0H5qjWeWHaAQnM8xspxjOyg_LlBKn2uMsod7zjdjqAcBWyTN8nzFAyLxTmPaS8qZdNQ1uimhGkhY2zZqJIsFoeHNBlasq6..Y4Ka.ZNrt1dCmiowg0FrZgsXbGnYv4;"
         },
     )
     url_response = urllib.request.urlopen(req)
